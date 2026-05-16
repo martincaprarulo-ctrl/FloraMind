@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FloraMind – Riego Inteligente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&family=Bricolage+Grotesque:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ── VARIABLES ─────────────────────────────────────────────── */
+:root {
+  --ink:    #0e0f0c;
+  --paper:  #f5f2eb;
+  --sage:   #5a7a5c;
+  --moss:   #3d5c3f;
+  --clay:   #c4713a;
+  --straw:  #d9c98a;
+  --mist:   #e8e4db;
+  --shadow: #1a1c18;
+  --red:    #c0392b;
+  --gold:   #b8860b;
+
+  --card-bg:     rgba(255,255,255,0.6);
+  --card-border: rgba(90,122,92,0.15);
+  --mono: 'DM Mono', monospace;
+  --serif: 'Instrument Serif', serif;
+  --sans: 'Bricolage Grotesque', sans-serif;
+}
+
+/* ── RESET ──────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(90,122,92,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 85% 90%, rgba(196,113,58,0.06) 0%, transparent 50%);
+}
+
+/* ── NAV ────────────────────────────────────────────────────── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px 28px;
+  background: rgba(245,242,235,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--card-border);
+}
+.nav-logo {
+  font-family: var(--serif);
+  font-size: 1.4rem;
+  color: var(--moss);
+  font-style: italic;
+  letter-spacing: -0.3px;
+}
+.nav-logo span { font-style: normal; color: var(--clay); }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.nav-status {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: .7rem; color: var(--sage);
+}
+.pulse {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--sage);
+  box-shadow: 0 0 0 0 rgba(90,122,92,0.4);
+  animation: pulse 2.5s infinite;
+}
+.pulse.error { background: var(--red); box-shadow: none; animation: none; }
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(90,122,92,0.5); }
+  70%  { box-shadow: 0 0 0 8px rgba(90,122,92,0); }
+  100% { box-shadow: 0 0 0 0 rgba(90,122,92,0); }
+}
+.nav-clock {
+  font-family: var(--mono); font-size: .75rem;
+  color: var(--ink); opacity: .5;
+}
+
+/* ── LAYOUT ─────────────────────────────────────────────────── */
+.wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+
+.section-label {
+  font-family: var(--mono); font-size: .6rem;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--sage); margin: 32px 0 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-label::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--card-border), transparent);
+}
+
+/* ── ALERTA ─────────────────────────────────────────────────── */
+.alerta {
+  background: rgba(192,57,43,0.06);
+  border: 1px solid rgba(192,57,43,0.3);
+  border-radius: 10px;
+  padding: 11px 16px;
+  font-size: .82rem; color: var(--red);
+  margin-bottom: 20px; display: none;
+}
+.alerta.show { display: block; }
+
+/* ── CARDS ──────────────────────────────────────────────────── */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 20px;
+  backdrop-filter: blur(6px);
+}
+
+/* ── TOP GRID ───────────────────────────────────────────────── */
+.top-grid {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 14px;
+}
+@media(max-width:680px){ .top-grid { grid-template-columns: 1fr; } }
+
+/* Clima card */
+.clima-label {
+  font-family: var(--mono); font-size: .58rem;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--sage); margin-bottom: 10px;
+}
+.temp-display {
+  font-family: var(--serif);
+  font-size: 3.8rem; line-height: 1;
+  color: var(--moss); letter-spacing: -2px;
+  margin-bottom: 12px;
+}
+.temp-display sup { font-size: 1.2rem; }
+.kv { display: flex; justify-content: space-between; font-size: .82rem; margin-bottom: 6px; }
+.kv .k { color: var(--sage); }
+.kv .v { font-weight: 600; font-family: var(--mono); font-size: .78rem; }
+
+/* LDR */
+.ldr-section { margin-top: 14px; }
+.ldr-track {
+  background: rgba(90,122,92,0.1);
+  border-radius: 3px; height: 4px; margin: 5px 0 3px;
+}
+.ldr-fill {
+  height: 4px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--straw), var(--clay));
+  transition: width .8s ease;
+}
+.ldr-estado { font-size: .7rem; color: var(--sage); }
+
+/* Pronóstico */
+.prono-grid {
+  display: grid; grid-template-columns: repeat(5,1fr); gap: 6px;
+  height: 100%;
+}
+.prono-item {
+  background: rgba(90,122,92,0.04);
+  border: 1px solid var(--card-border);
+  border-radius: 10px; padding: 10px 6px;
+  text-align: center;
+}
+.prono-hora { font-family: var(--mono); font-size: .62rem; color: var(--sage); margin-bottom: 4px; }
+.prono-temp { font-family: var(--serif); font-size: 1.3rem; color: var(--moss); }
+.prono-desc { font-size: .65rem; color: var(--ink); opacity: .6; margin-top: 3px; line-height: 1.2; }
+.prono-rain { font-family: var(--mono); font-size: .65rem; color: #3a7bd5; margin-top: 4px; }
+
+/* ── ZONAS ──────────────────────────────────────────────────── */
+.zonas-controls {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+}
+.btn-round {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--ink); font-size: 1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s; line-height: 1;
+}
+.btn-round:hover { border-color: var(--moss); color: var(--moss); }
+.zone-count {
+  font-family: var(--mono); font-size: 1rem;
+  min-width: 20px; text-align: center;
+}
+.zonas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px,1fr));
+  gap: 12px;
+}
+
+/* Zona card */
+.zcard {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px; padding: 16px;
+  position: relative; transition: border-color .3s;
+}
+.zcard.rec-REGAR    { border-color: var(--sage); }
+.zcard.rec-NO       { border-color: rgba(192,57,43,0.4); }
+.zcard.rec-ESPERAR  { border-color: rgba(184,134,11,0.4); }
+.zcard.rec-BLOQUEA  { border-color: rgba(192,57,43,0.4); }
+
+.zcard-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+.zcard-idx { font-family: var(--mono); font-size: .58rem; color: var(--sage); }
+.led {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: rgba(90,122,92,0.2);
+  transition: all .3s;
+}
+.led.on {
+  background: var(--sage);
+  box-shadow: 0 0 8px rgba(90,122,92,0.6);
+  animation: pulse 1.5s infinite;
+}
+.zcard-name { font-family: var(--serif); font-size: 1.05rem; color: var(--moss); margin-bottom: 2px; }
+.zcard-preset { font-size: .72rem; color: var(--sage); margin-bottom: 10px; }
+
+.rec-tag {
+  display: inline-block; padding: 2px 9px;
+  border-radius: 20px; font-family: var(--mono);
+  font-size: .65rem; font-weight: 500; margin-bottom: 5px;
+}
+.tag-REGAR   { background: rgba(90,122,92,0.1);  color: var(--moss); }
+.tag-NO      { background: rgba(192,57,43,0.08); color: var(--red); }
+.tag-ESPERAR { background: rgba(184,134,11,0.1); color: var(--gold); }
+.tag-MONITOR { background: rgba(90,122,92,0.06); color: var(--sage); }
+.tag-BLOQUEA { background: rgba(192,57,43,0.1);  color: var(--red); }
+.tag-SIN     { background: rgba(0,0,0,0.04);     color: var(--sage); }
+
+.zcard-motivo { font-size: .75rem; color: var(--ink); opacity: .55; line-height: 1.4; margin-bottom: 12px; }
+
+.hum-big { font-family: var(--serif); font-size: 1.8rem; color: var(--moss); line-height: 1; }
+.hum-big span { font-size: .9rem; color: var(--sage); }
+.hum-track { background: rgba(90,122,92,0.1); border-radius: 3px; height: 4px; margin: 6px 0 3px; }
+.hum-fill  { height: 4px; border-radius: 3px; background: var(--sage); transition: width .8s; }
+.hum-range { font-family: var(--mono); font-size: .62rem; color: var(--sage); opacity: .7; }
+
+.btn-edit-z {
+  position: absolute; bottom: 12px; right: 12px;
+  background: none; border: none; cursor: pointer;
+  font-size: .7rem; color: var(--sage); font-family: var(--sans);
+}
+.btn-edit-z:hover { color: var(--moss); }
+
+/* Panel edición zona */
+.edit-panel {
+  display: none; margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid var(--card-border);
+}
+.edit-panel.open { display: block; }
+.field { margin-bottom: 10px; }
+.field label {
+  display: block; font-family: var(--mono);
+  font-size: .6rem; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--sage); margin-bottom: 4px;
+}
+.finput {
+  width: 100%; background: rgba(255,255,255,0.7);
+  border: 1px solid var(--card-border); color: var(--ink);
+  border-radius: 7px; padding: 6px 10px;
+  font-size: .82rem; font-family: var(--sans);
+  transition: border-color .2s;
+}
+.finput:focus { outline: none; border-color: var(--sage); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pin-hint { font-size: .65rem; color: var(--clay); margin-top: 2px; }
+.btn-save {
+  width: 100%; margin-top: 8px; padding: 7px;
+  background: var(--moss); color: var(--paper);
+  border: none; border-radius: 8px; cursor: pointer;
+  font-family: var(--sans); font-size: .82rem; font-weight: 600;
+  transition: opacity .2s;
+}
+.btn-save:hover { opacity: .85; }
+
+/* ── PINES ──────────────────────────────────────────────────── */
+.pin-table {
+  width: 100%; border-collapse: collapse; font-size: .8rem;
+}
+.pin-table th {
+  font-family: var(--mono); font-size: .58rem;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--sage); padding: 0 10px 8px; text-align: left;
+  border-bottom: 1px solid var(--card-border);
+}
+.pin-table td { padding: 7px 10px; }
+.pin-table td:first-child { font-family: var(--mono); color: var(--clay); font-size: .75rem; }
+.pin-table tr:not(:last-child) td { border-bottom: 1px solid var(--card-border); }
+
+/* ── PRESETS ────────────────────────────────────────────────── */
+.presets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px,1fr));
+  gap: 12px;
+}
+.pcard {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px; padding: 16px; position: relative;
+}
+.pcard-name {
+  font-family: var(--serif); font-size: 1.05rem;
+  color: var(--moss); margin-bottom: 10px; font-style: italic;
+}
+.pstat { display: flex; justify-content: space-between; font-size: .75rem; margin-bottom: 5px; }
+.pstat .pk { color: var(--sage); }
+.pstat .pv { font-family: var(--mono); font-size: .72rem; }
+.pcard-actions { display: flex; gap: 8px; margin-top: 12px; }
+.btn-xs {
+  flex: 1; padding: 5px; border-radius: 7px;
+  border: 1px solid var(--card-border);
+  background: none; color: var(--ink);
+  font-size: .72rem; cursor: pointer;
+  font-family: var(--sans); transition: all .2s;
+}
+.btn-xs:hover     { border-color: var(--moss); color: var(--moss); }
+.btn-xs.del:hover { border-color: var(--red);  color: var(--red); }
+
+.btn-nuevo {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px;
+  border: 1px solid var(--sage);
+  background: none; color: var(--sage);
+  font-size: .72rem; cursor: pointer;
+  font-family: var(--sans); margin-left: 10px;
+  transition: all .2s;
+}
+.btn-nuevo:hover { background: var(--sage); color: var(--paper); }
+
+/* ── GRÁFICOS ───────────────────────────────────────────────── */
+.chart-controls {
+  display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.btn-rango {
+  padding: 5px 14px; border-radius: 20px;
+  border: 1px solid var(--card-border);
+  background: none; color: var(--sage);
+  font-family: var(--mono); font-size: .68rem;
+  cursor: pointer; transition: all .2s;
+}
+.btn-rango.active { background: var(--moss); color: var(--paper); border-color: var(--moss); }
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px,1fr));
+  gap: 14px;
+}
+.chart-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 18px; }
+.chart-title { font-family: var(--mono); font-size: .62rem; letter-spacing: 2px; text-transform: uppercase; color: var(--sage); margin-bottom: 14px; }
+canvas { width: 100% !important; }
+.chart-empty { font-size: .8rem; color: var(--sage); text-align: center; padding: 30px 0; }
+
+/* ── MODAL ──────────────────────────────────────────────────── */
+.modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(14,15,12,0.5);
+  backdrop-filter: blur(4px);
+  z-index: 500;
+  display: none; align-items: center; justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: var(--paper); border: 1px solid var(--card-border);
+  border-radius: 16px; padding: 26px;
+  width: 90%; max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+.modal h3 {
+  font-family: var(--serif); font-size: 1.2rem;
+  color: var(--moss); margin-bottom: 18px; font-style: italic;
+}
+.modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+.btn-modal {
+  flex: 1; padding: 9px; border-radius: 9px;
+  border: 1px solid var(--card-border);
+  background: none; color: var(--ink);
+  cursor: pointer; font-family: var(--sans); font-size: .82rem;
+  transition: all .2s;
+}
+.btn-modal:hover { border-color: var(--sage); }
+.btn-modal.primary {
+  background: var(--moss); color: var(--paper);
+  border-color: var(--moss); font-weight: 600;
+}
+.btn-modal.primary:hover { opacity: .88; }
+
+/* ── FOOTER ─────────────────────────────────────────────────── */
+footer {
+  text-align: center; color: var(--sage);
+  font-family: var(--mono); font-size: .65rem;
+  margin-top: 40px; opacity: .6;
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Flora<span>Mind</span></div>
+  <div class="nav-right">
+    <div class="nav-status">
+      <div class="pulse" id="navDot"></div>
+      <span id="navEstado">Conectando...</span>
+    </div>
+    <div class="nav-clock" id="navClock">--:--:--</div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="alerta" id="alertaBar"></div>
+
+  <!-- CLIMA -->
+  <div class="section-label">Estado climático</div>
+  <div class="top-grid">
+
+    <div class="card">
+      <div class="clima-label" id="ciudadLabel">CARGANDO...</div>
+      <div class="temp-display"><span id="tempVal">--</span><sup>°C</sup></div>
+      <div class="kv"><span class="k">Estado</span><span class="v" id="estadoVal">--</span></div>
+      <div class="kv"><span class="k">Hum. aire</span><span class="v" id="humAireVal">--%</span></div>
+      <div class="kv"><span class="k">Lluvia prev.</span><span class="v" id="lluviaVal">--</span></div>
+      <div class="ldr-section">
+        <div class="kv"><span class="k">Luz LDR</span><span class="v" id="ldrValTxt">--%</span></div>
+        <div class="ldr-track"><div class="ldr-fill" id="ldrFill" style="width:0%"></div></div>
+        <div class="ldr-estado" id="ldrEstado">--</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="clima-label">PRONÓSTICO 15 HORAS</div>
+      <div class="prono-grid" id="pronoGrid">
+        <div class="prono-item" style="grid-column:1/-1;text-align:center;color:var(--sage);font-size:.8rem;padding:20px">
+          Cargando pronóstico...
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ZONAS -->
+  <div class="section-label">Zonas de riego</div>
+  <div class="zonas-controls">
+    <button class="btn-round" onclick="cambiarZonas(-1)">−</button>
+    <span class="zone-count" id="zoneCount">1</span>
+    <button class="btn-round" onclick="cambiarZonas(1)">+</button>
+    <span style="font-size:.78rem;color:var(--sage)">zonas activas</span>
+  </div>
+  <div class="zonas-grid" id="zonasGrid"></div>
+
+  <!-- PINES -->
+  <div class="section-label">Referencia de pines ESP32</div>
+  <div class="card">
+    <table class="pin-table">
+      <tr><th>GPIO</th><th>Función sugerida</th><th>Tipo</th></tr>
+      <tr><td>34</td><td>LDR sensor de luz</td><td>Solo entrada analógica</td></tr>
+      <tr><td>35</td><td>Humedad suelo — Zona 1</td><td>Solo entrada analógica</td></tr>
+      <tr><td>32</td><td>Humedad suelo — Zona 2</td><td>Entrada/Salida analógica</td></tr>
+      <tr><td>33</td><td>Humedad suelo — Zona 3</td><td>Entrada/Salida analógica</td></tr>
+      <tr><td>25</td><td>Humedad suelo — Zona 4</td><td>Entrada/Salida + DAC</td></tr>
+      <tr><td>26</td><td>LED / Relé — Zona 1</td><td>Salida digital + DAC</td></tr>
+      <tr><td>27</td><td>LED / Relé — Zona 2</td><td>Salida digital</td></tr>
+      <tr><td>14</td><td>LED / Relé — Zona 3</td><td>Salida digital</td></tr>
+      <tr><td>12</td><td>LED / Relé — Zona 4</td><td>Salida digital</td></tr>
+    </table>
+  </div>
+
+  <!-- PRESETS -->
+  <div class="section-label">
+    Presets de plantas
+    <button class="btn-nuevo" onclick="abrirModalPreset(-1)">+ Nuevo preset</button>
+  </div>
+  <div class="presets-grid" id="presetsGrid"></div>
+
+  <!-- GRÁFICOS -->
+  <div class="section-label">Historial</div>
+  <div class="chart-controls">
+    <button class="btn-rango active" onclick="cargarHistorial('hoy',this)">Hoy</button>
+    <button class="btn-rango" onclick="cargarHistorial('semana',this)">7 días</button>
+    <button class="btn-rango" onclick="cargarHistorial('mes',this)">Mes</button>
+    <button class="btn-rango" onclick="cargarHistorial('todo',this)">Todo</button>
+  </div>
+  <div class="charts-grid" id="chartsGrid">
+    <div class="chart-card">
+      <div class="chart-title">Temperatura °C</div>
+      <canvas id="chartTemp"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Humedad suelo — Zona 1</div>
+      <canvas id="chartHum0"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Humedad suelo — Zona 2</div>
+      <canvas id="chartHum1"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Humedad suelo — Zona 3</div>
+      <canvas id="chartHum2"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Humedad suelo — Zona 4</div>
+      <canvas id="chartHum3"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Minutos de riego por zona</div>
+      <canvas id="chartRiego"></canvas>
+    </div>
+  </div>
+
+  <footer id="footerTxt">FloraMind · Firebase + Google Sheets · GitHub Pages</footer>
+</div>
+
+<!-- MODAL PRESET -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">Nuevo preset de planta</h3>
+    <input type="hidden" id="mIdx" value="-1">
+    <div class="field">
+      <label>Nombre de la planta</label>
+      <input class="finput" id="mNombre" placeholder="ej: Suculenta, Tomate...">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Humedad mín %</label>
+        <input class="finput" id="mHumMin" type="number" min="0" max="100" value="20">
+      </div>
+      <div class="field">
+        <label>Humedad máx %</label>
+        <input class="finput" id="mHumMax" type="number" min="0" max="100" value="60">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Temp mín °C</label>
+        <input class="finput" id="mTempMin" type="number" step="0.5" value="5">
+      </div>
+      <div class="field">
+        <label>Temp máx °C</label>
+        <input class="finput" id="mTempMax" type="number" step="0.5" value="30">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Luz mín % (no regar noche)</label>
+        <input class="finput" id="mLuzMin" type="number" min="0" max="100" value="10">
+      </div>
+      <div class="field">
+        <label>Luz máx % (evitar pleno sol)</label>
+        <input class="finput" id="mLuzMax" type="number" min="0" max="100" value="70">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-modal primary" onclick="guardarPreset()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHART.JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<!-- FIREBASE SDK -->
+<script type="module">
+import { initializeApp }             from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ── CONFIG FIREBASE ───────────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "AIzaSyAeqI-ayBRSpnq3lrdJ_glYPAi2PdODrqg",
+  authDomain:        "floramind-cbae8.firebaseapp.com",
+  databaseURL:       "https://floramind-cbae8-default-rtdb.firebaseio.com",
+  projectId:         "floramind-cbae8",
+  storageBucket:     "floramind-cbae8.firebasestorage.app",
+  messagingSenderId: "95307906057",
+  appId:             "1:95307906057:web:5cc2f956c92e82f9f88cd8"
+};
+
+// ── CONFIG APPS SCRIPT ────────────────────────────────────────
+const SHEETS_URL = "https://script.google.com/macros/s/AKfycbwLAvkWzuk_hhTJCQ9PBQ1epZkc7OZ9UigHr3rhtnrabGpKei0j70CruGPzLYonXrO2uw/exec";
+
+// ── INIT ──────────────────────────────────────────────────────
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// ── ESTADO LOCAL ──────────────────────────────────────────────
+let state = {
+  presets: [],
+  zonas:   [],
+  numZonas: 1,
+  datosEsp: null
+};
+
+// Presets default (se usan si Firebase está vacío)
+const PRESETS_DEFAULT = [
+  { idx:0, nombre:"Suculenta",  humMin:15, humMax:40, tempMin:5,  tempMax:28, luzMin:10, luzMax:60 },
+  { idx:1, nombre:"Tomate",     humMin:40, humMax:70, tempMin:8,  tempMax:32, luzMin:20, luzMax:80 },
+  { idx:2, nombre:"Aromatica",  humMin:30, humMax:60, tempMin:4,  tempMax:30, luzMin:15, luzMax:70 },
+  { idx:3, nombre:"Frutal",     humMin:35, humMax:65, tempMin:2,  tempMax:35, luzMin:10, luzMax:80 },
+  { idx:4, nombre:"Flor",       humMin:45, humMax:75, tempMin:5,  tempMax:30, luzMin:20, luzMax:70 },
+];
+
+// ── ESCUCHAR FIREBASE — ESTADO ESP32 ─────────────────────────
+onValue(ref(db, 'estado'), snap => {
+  const d = snap.val();
+  if (!d) return;
+  state.datosEsp = d;
+  renderClima(d);
+  renderZonas(d);
+  document.getElementById('navDot').classList.remove('error');
+  document.getElementById('navEstado').textContent = 'En línea · ' + (d.hora ? d.hora.substring(11,19) : '--');
+  document.getElementById('footerTxt').textContent =
+    'FloraMind · Última actualización: ' + (d.hora ?? '--');
+}, err => {
+  document.getElementById('navDot').classList.add('error');
+  document.getElementById('navEstado').textContent = 'Sin conexión';
+});
+
+// ── ESCUCHAR FIREBASE — CONFIG ────────────────────────────────
+onValue(ref(db, 'config'), snap => {
+  const d = snap.val();
+  if (!d) {
+    // Primera vez: cargar presets default a Firebase
+    state.presets = [...PRESETS_DEFAULT];
+    state.numZonas = 1;
+    guardarConfigFirebase();
+  } else {
+    state.presets  = d.presets  ? Object.values(d.presets).filter(p => p && p.activo) : [...PRESETS_DEFAULT];
+    state.numZonas = d.numZonas ?? 1;
+    state.zonas    = d.zonas    ? Object.values(d.zonas)   : [];
+    // Asegurar que los presets tengan idx
+    state.presets.forEach((p,i) => { if(p.idx === undefined) p.idx = i; });
+  }
+  renderPresets();
+  if (state.datosEsp) renderZonas(state.datosEsp);
+  document.getElementById('zoneCount').textContent = state.numZonas;
+});
+
+// ── GUARDAR CONFIG EN FIREBASE ────────────────────────────────
+async function guardarConfigFirebase() {
+  const presetsObj = {};
+  state.presets.forEach((p,i) => { presetsObj[i] = { ...p, activo: true }; });
+
+  const zonasObj = {};
+  state.zonas.forEach((z,i) => { zonasObj[i] = z; });
+
+  await set(ref(db, 'config'), {
+    numZonas: state.numZonas,
+    presets:  presetsObj,
+    zonas:    zonasObj
+  });
+}
+
+// ── RENDER CLIMA ──────────────────────────────────────────────
+function renderClima(d) {
+  document.getElementById('ciudadLabel').textContent = (d.ciudad ?? 'ESP32').toUpperCase();
+  document.getElementById('tempVal').textContent     = d.temp    ?? '--';
+  document.getElementById('estadoVal').textContent   = d.estado  ?? '--';
+  document.getElementById('humAireVal').textContent  = (d.humAire ?? '--') + '%';
+  document.getElementById('lluviaVal').textContent   = (d.lluvia  ?? '--') + ' mm' + (d.lluviaOk ? ' ⚠️' : '');
+  document.getElementById('ldrValTxt').textContent   = (d.luz     ?? '--') + '%';
+  document.getElementById('ldrFill').style.width     = (d.luz ?? 0) + '%';
+
+  const col = d.luzNatural ? 'var(--sage)' : 'var(--clay)';
+  document.getElementById('ldrEstado').innerHTML =
+    `<span style="color:${col}">●</span> ${d.estadoLuz ?? '--'}`;
+
+  // Alerta API
+  const ab = document.getElementById('alertaBar');
+  if (!d.apiOk && d.alerta) {
+    ab.textContent = '⚠️ ' + d.alerta + ' — Riego bloqueado por seguridad.';
+    ab.classList.add('show');
+  } else ab.classList.remove('show');
+
+  // Pronóstico
+  if (d.pronostico && d.pronostico.length) {
+    document.getElementById('pronoGrid').innerHTML = d.pronostico.map(p => `
+      <div class="prono-item">
+        <div class="prono-hora">${p.hora}hs</div>
+        <div class="prono-temp">${p.temp}°</div>
+        <div class="prono-desc">${p.desc}</div>
+        ${p.rain > 0 ? `<div class="prono-rain">${p.rain}mm</div>` : ''}
+      </div>`).join('');
+  }
+}
+
+// ── RENDER ZONAS ──────────────────────────────────────────────
+function recTag(rec) {
+  if (!rec) return 'tag-SIN';
+  if (rec.includes('REGAR AHORA')) return 'tag-REGAR';
+  if (rec.includes('NO REGAR'))   return 'tag-NO';
+  if (rec.includes('ESPERAR'))    return 'tag-ESPERAR';
+  if (rec.includes('MONITOR'))    return 'tag-MONITOR';
+  if (rec.includes('BLOQUEADO'))  return 'tag-BLOQUEA';
+  return 'tag-SIN';
+}
+function recClass(rec) {
+  if (!rec) return '';
+  if (rec.includes('REGAR AHORA')) return 'rec-REGAR';
+  if (rec.includes('NO REGAR') || rec.includes('BLOQUEADO')) return 'rec-NO';
+  if (rec.includes('ESPERAR'))    return 'rec-ESPERAR';
+  return '';
+}
+
+function renderZonas(d) {
+  const grid = document.getElementById('zonasGrid');
+  const zonas = d.zonas ? Object.values(d.zonas) : [];
+  let html = '';
+
+  for (let i = 0; i < state.numZonas; i++) {
+    const z = zonas[i] ?? {};
+    const preset = state.presets.find(p => p.idx === (z.preset ?? 0)) ?? state.presets[0] ?? {};
+    const hum  = z.hum ?? 0;
+    const hMin = preset.humMin ?? 0;
+    const hMax = preset.humMax ?? 100;
+    const cfgZ = state.zonas[i] ?? {};
+
+    html += `
+    <div class="zcard ${recClass(z.rec)}" id="zcard${i}">
+      <div class="zcard-top">
+        <span class="zcard-idx">ZONA ${i+1} · GPIO ${z.pinH ?? '--'}</span>
+        <div class="led ${z.on ? 'on' : ''}" title="${z.on ? 'Regando' : 'En espera'}"></div>
+      </div>
+      <div class="zcard-name">${cfgZ.nombre ?? z.nombre ?? 'Zona '+(i+1)}</div>
+      <div class="zcard-preset">${preset.nombre ?? 'Sin preset'}</div>
+      <span class="rec-tag ${recTag(z.rec)}">${z.rec ?? 'Sin datos'}</span>
+      <div class="zcard-motivo">${z.motivo ?? ''}</div>
+      <div class="hum-big">${hum}<span>%</span></div>
+      <div class="hum-track"><div class="hum-fill" style="width:${hum}%"></div></div>
+      <div class="hum-range">Min ${hMin}% — Max ${hMax}%</div>
+      <button class="btn-edit-z" onclick="toggleEditZ(${i})">✎ editar</button>
+      <div class="edit-panel" id="ep${i}">
+        <div class="field">
+          <label>Nombre zona</label>
+          <input class="finput" id="zn${i}" value="${cfgZ.nombre ?? z.nombre ?? 'Zona '+(i+1)}">
+        </div>
+        <div class="field">
+          <label>Preset de planta</label>
+          <select class="finput" id="zp${i}">
+            ${state.presets.map(p=>`<option value="${p.idx}" ${p.idx===(z.preset??0)?'selected':''}>${p.nombre}</option>`).join('')}
+          </select>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>Pin humedad</label>
+            <select class="finput" id="zph${i}">
+              ${[35,32,33,25].map(p=>`<option ${p===(z.pinH??35)?'selected':''}>${p}</option>`).join('')}
+            </select>
+            <div class="pin-hint">Sensor analógico</div>
+          </div>
+          <div class="field">
+            <label>Pin LED/relé</label>
+            <select class="finput" id="zps${i}">
+              ${[26,27,14,12].map(p=>`<option ${p===(z.pinS??26)?'selected':''}>${p}</option>`).join('')}
+            </select>
+            <div class="pin-hint">→ relé después</div>
+          </div>
+        </div>
+        <button class="btn-save" onclick="guardarZona(${i})">Guardar zona ${i+1}</button>
+      </div>
+    </div>`;
+  }
+
+  grid.innerHTML = html || '<div style="color:var(--sage);font-size:.85rem">No hay zonas activas.</div>';
+}
+
+// ── RENDER PRESETS ────────────────────────────────────────────
+function renderPresets() {
+  const grid = document.getElementById('presetsGrid');
+  if (!state.presets.length) {
+    grid.innerHTML = '<div style="color:var(--sage);font-size:.85rem">Sin presets. Creá uno.</div>';
+    return;
+  }
+  grid.innerHTML = state.presets.map(p => `
+    <div class="pcard">
+      <div class="pcard-name">${p.nombre}</div>
+      <div class="pstat"><span class="pk">Humedad</span><span class="pv">${p.humMin}–${p.humMax}%</span></div>
+      <div class="pstat"><span class="pk">Temperatura</span><span class="pv">${p.tempMin}–${p.tempMax}°C</span></div>
+      <div class="pstat"><span class="pk">Luz LDR</span><span class="pv">${p.luzMin}–${p.luzMax}%</span></div>
+      <div class="pcard-actions">
+        <button class="btn-xs"     onclick="abrirModalPreset(${p.idx})">✎ Editar</button>
+        <button class="btn-xs del" onclick="borrarPreset(${p.idx})">✕ Borrar</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── ZONAS ─────────────────────────────────────────────────────
+window.toggleEditZ = i => document.getElementById('ep'+i).classList.toggle('open');
+
+window.cambiarZonas = async delta => {
+  const n = Math.max(1, Math.min(4, state.numZonas + delta));
+  state.numZonas = n;
+  document.getElementById('zoneCount').textContent = n;
+  await guardarConfigFirebase();
+};
+
+window.guardarZona = async i => {
+  if (!state.zonas[i]) state.zonas[i] = {};
+  state.zonas[i] = {
+    idx:    i,
+    nombre: document.getElementById('zn'+i).value,
+    preset: parseInt(document.getElementById('zp'+i).value),
+    pinH:   parseInt(document.getElementById('zph'+i).value),
+    pinS:   parseInt(document.getElementById('zps'+i).value),
+    activa: true
+  };
+  await guardarConfigFirebase();
+  document.getElementById('ep'+i).classList.remove('open');
+};
+
+// ── PRESETS ───────────────────────────────────────────────────
+window.abrirModalPreset = idx => {
+  document.getElementById('mIdx').value = idx;
+  if (idx >= 0) {
+    const p = state.presets.find(x => x.idx === idx);
+    if (p) {
+      document.getElementById('modalTitle').textContent = 'Editar preset';
+      document.getElementById('mNombre').value  = p.nombre;
+      document.getElementById('mHumMin').value  = p.humMin;
+      document.getElementById('mHumMax').value  = p.humMax;
+      document.getElementById('mTempMin').value = p.tempMin;
+      document.getElementById('mTempMax').value = p.tempMax;
+      document.getElementById('mLuzMin').value  = p.luzMin;
+      document.getElementById('mLuzMax').value  = p.luzMax;
+    }
+  } else {
+    document.getElementById('modalTitle').textContent = 'Nuevo preset de planta';
+    document.getElementById('mNombre').value  = '';
+    document.getElementById('mHumMin').value  = 20;
+    document.getElementById('mHumMax').value  = 60;
+    document.getElementById('mTempMin').value = 5;
+    document.getElementById('mTempMax').value = 30;
+    document.getElementById('mLuzMin').value  = 10;
+    document.getElementById('mLuzMax').value  = 70;
+  }
+  document.getElementById('modalBg').classList.add('open');
+};
+
+window.cerrarModal = () => document.getElementById('modalBg').classList.remove('open');
+
+window.guardarPreset = async () => {
+  let idx = parseInt(document.getElementById('mIdx').value);
+  if (idx < 0) {
+    // Nuevo: buscar índice libre
+    const usados = state.presets.map(p => p.idx);
+    for (let i = 0; i < 10; i++) { if (!usados.includes(i)) { idx = i; break; } }
+  }
+  const preset = {
+    idx,
+    activo:  true,
+    nombre:  document.getElementById('mNombre').value,
+    humMin:  parseInt(document.getElementById('mHumMin').value),
+    humMax:  parseInt(document.getElementById('mHumMax').value),
+    tempMin: parseFloat(document.getElementById('mTempMin').value),
+    tempMax: parseFloat(document.getElementById('mTempMax').value),
+    luzMin:  parseInt(document.getElementById('mLuzMin').value),
+    luzMax:  parseInt(document.getElementById('mLuzMax').value),
+  };
+  const existe = state.presets.findIndex(p => p.idx === idx);
+  if (existe >= 0) state.presets[existe] = preset;
+  else state.presets.push(preset);
+  await guardarConfigFirebase();
+  cerrarModal();
+};
+
+window.borrarPreset = async idx => {
+  if (!confirm('¿Borrar este preset?')) return;
+  state.presets = state.presets.filter(p => p.idx !== idx);
+  await guardarConfigFirebase();
+};
+
+// ── GRÁFICOS ──────────────────────────────────────────────────
+const charts = {};
+
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.color = '#5a7a5c';
+
+function crearChart(id, label, color) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return null;
+  if (charts[id]) { charts[id].destroy(); }
+  charts[id] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label,
+        data: [],
+        borderColor: color,
+        backgroundColor: color + '18',
+        borderWidth: 1.5,
+        pointRadius: 2,
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(90,122,92,0.08)' }, ticks: { maxTicksLimit: 8, font: { size: 10 } } },
+        y: { grid: { color: 'rgba(90,122,92,0.08)' }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+  return charts[id];
+}
+
+function crearChartBarras(id, label, colores) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return null;
+  if (charts[id]) { charts[id].destroy(); }
+  charts[id] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: [], datasets: [] },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10 } } },
+      scales: {
+        x: { grid: { color: 'rgba(90,122,92,0.08)' }, ticks: { font: { size: 10 } } },
+        y: { grid: { color: 'rgba(90,122,92,0.08)' }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+  return charts[id];
+}
+
+window.cargarHistorial = async (rango, btn) => {
+  document.querySelectorAll('.btn-rango').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  try {
+    const r   = await fetch(SHEETS_URL + '?rango=' + rango);
+    const d   = await r.json();
+    if (!d.ok || !d.filas.length) {
+      document.querySelectorAll('.chart-card canvas').forEach(c => {
+        const id = c.id;
+        const ch = crearChart(id, id, 'var(--sage)');
+      });
+      return;
+    }
+
+    const filas = d.filas;
+    const horas = filas.map(f => f['Hora'] ?? f.ts?.substring(11,16) ?? '');
+
+    // Temperatura
+    const chTemp = crearChart('chartTemp', 'Temp °C', '#c4713a');
+    if (chTemp) {
+      chTemp.data.labels = horas;
+      chTemp.data.datasets[0].data = filas.map(f => parseFloat(f['Temp Avg C']) || null);
+      chTemp.update();
+    }
+
+    // Humedad por zona
+    const coloresZona = ['#5a7a5c','#3a7bd5','#c4713a','#b8860b'];
+    for (let z = 1; z <= 4; z++) {
+      const ch = crearChart('chartHum'+(z-1), 'Zona '+z+' %', coloresZona[z-1]);
+      if (ch) {
+        ch.data.labels = horas;
+        ch.data.datasets[0].data = filas.map(f => parseFloat(f['Z'+z+' Hum Avg']) || null);
+        // Agregar líneas de min/max como datasets adicionales
+        ch.data.datasets[1] = {
+          label: 'Mín', data: filas.map(f => parseFloat(f['Z'+z+' Hum Min']) || null),
+          borderColor: coloresZona[z-1]+'88', borderDash: [4,4],
+          borderWidth: 1, pointRadius: 0, fill: false, tension: 0.4
+        };
+        ch.data.datasets[2] = {
+          label: 'Máx', data: filas.map(f => parseFloat(f['Z'+z+' Hum Max']) || null),
+          borderColor: coloresZona[z-1]+'44', borderDash: [2,4],
+          borderWidth: 1, pointRadius: 0, fill: false, tension: 0.4
+        };
+        ch.update();
+      }
+    }
+
+    // Riego por zona (barras apiladas)
+    const chRiego = crearChartBarras('chartRiego', 'Minutos riego', coloresZona);
+    if (chRiego) {
+      chRiego.data.labels = horas;
+      chRiego.data.datasets = [1,2,3,4].map((z,i) => ({
+        label: 'Zona '+z,
+        data: filas.map(f => parseFloat(f['Z'+z+' Min Riego']) || 0),
+        backgroundColor: coloresZona[i] + 'aa',
+        borderColor: coloresZona[i],
+        borderWidth: 1
+      }));
+      chRiego.options.scales.x.stacked = true;
+      chRiego.options.scales.y.stacked = true;
+      chRiego.update();
+    }
+
+  } catch(err) {
+    console.warn('Error cargando historial:', err);
+  }
+};
+
+// Cargar historial inicial
+cargarHistorial('hoy', document.querySelector('.btn-rango'));
+
+// ── CLOCK LOCAL ───────────────────────────────────────────────
+setInterval(() => {
+  document.getElementById('navClock').textContent =
+    new Date().toTimeString().substring(0, 8);
+}, 1000);
+
+</script>
+</body>
+</html>
