@@ -942,13 +942,10 @@ window.cargarHistorial = async (rango, btn) => {
     }
 
     const filas = d.filas;
-    const horas = filas.map(f => {
-  if (f['Fecha'] && f['Hora']) {
-    // Hora viene como "dd/MM/yyyy HH:mm", extraer solo HH:mm
-    const partes = f['Hora'].toString().split(' ');
-    return partes.length > 1 ? partes[1].substring(0,5) : f['Hora'].toString().substring(0,5);
-  }
-  return f.ts ? new Date(f.ts).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}) : '--';
+const horas = filas.map(f => {
+  try {
+    return new Date(f.ts).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+  } catch(e) { return '--'; }
 });
 
     // Temperatura
